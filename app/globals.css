@@ -1,0 +1,238 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── CSS Variables (Design Tokens) ──────────────────────── */
+@layer base {
+  :root {
+    --background: 40 6% 97%;         /* warm-50 #FAFAF9 */
+    --foreground: 222 47% 11%;       /* navy-800 #0F172A */
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 222 47% 11%;          /* navy-800 */
+    --primary-foreground: 40 6% 97%;
+    --secondary: 40 6% 96%;          /* warm-100 */
+    --secondary-foreground: 222 47% 11%;
+    --muted: 40 5% 93%;
+    --muted-foreground: 215 14% 45%;
+    --accent: 175 84% 32%;           /* teal-500 */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 40 6% 90%;
+    --input: 40 6% 90%;
+    --ring: 175 84% 32%;             /* teal */
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 222 47% 6%;
+    --foreground: 40 6% 97%;
+    --card: 222 40% 9%;
+    --card-foreground: 40 6% 97%;
+    --popover: 222 40% 9%;
+    --popover-foreground: 40 6% 97%;
+    --primary: 175 84% 32%;
+    --primary-foreground: 222 47% 6%;
+    --secondary: 222 30% 14%;
+    --secondary-foreground: 40 6% 97%;
+    --muted: 222 30% 14%;
+    --muted-foreground: 215 16% 55%;
+    --accent: 175 74% 38%;
+    --accent-foreground: 222 47% 6%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 40 6% 97%;
+    --border: 222 25% 16%;
+    --input: 222 25% 16%;
+    --ring: 175 74% 38%;
+  }
+}
+
+/* ─── Base ───────────────────────────────────────────────── */
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-bricolage), var(--font-inter), system-ui, sans-serif;
+    @apply tracking-tight;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.2);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.4);
+  }
+
+  ::selection {
+    background-color: rgba(13, 148, 136, 0.2);
+    color: #0F172A;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+/* ─── Components ─────────────────────────────────────────── */
+@layer components {
+  .section-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .section-padding {
+    @apply py-16 md:py-24 lg:py-32;
+  }
+
+  .section-heading {
+    @apply text-3xl md:text-4xl lg:text-5xl font-bold font-heading text-navy-800;
+  }
+
+  .section-subheading {
+    @apply text-lg md:text-xl text-navy-800/60 max-w-2xl;
+  }
+}
+
+/* ─── Utilities ──────────────────────────────────────────── */
+@layer utilities {
+  /* Gradients */
+  .text-gradient-navy {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #0F172A 0%, #1e4fd8 100%);
+  }
+
+  .text-gradient-teal {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #0D9488 0%, #2dd4bf 100%);
+  }
+
+  .text-gradient-brand {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #0F172A 0%, #0D9488 50%, #2dd4bf 100%);
+  }
+
+  .bg-gradient-hero {
+    background: linear-gradient(145deg, #060912 0%, #0F172A 35%, #0a2540 60%, #0b3d3a 100%);
+  }
+
+  .bg-gradient-hero-mesh {
+    position: relative;
+    background: linear-gradient(145deg, #060912 0%, #0F172A 35%, #0a2540 60%, #0b3d3a 100%);
+    overflow: hidden;
+  }
+
+  .bg-gradient-section {
+    background: linear-gradient(180deg, #FAFAF9 0%, #f0f4f8 100%);
+  }
+
+  .bg-gradient-cta {
+    background: linear-gradient(135deg, #0F172A 0%, #0b3d3a 100%);
+  }
+
+  /* Glassmorphism */
+  .glass {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .glass-light {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+  }
+
+  .glass-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+  }
+
+  /* Animated mesh orbs (used in hero) */
+  .mesh-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.4;
+    animation: mesh-move 20s ease-in-out infinite;
+  }
+
+  .mesh-orb-1 {
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(13, 148, 136, 0.6) 0%, transparent 70%);
+    top: -10%;
+    right: -5%;
+    animation-delay: 0s;
+  }
+
+  .mesh-orb-2 {
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(30, 79, 216, 0.5) 0%, transparent 70%);
+    bottom: -10%;
+    left: -5%;
+    animation-delay: -7s;
+  }
+
+  .mesh-orb-3 {
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(249, 115, 22, 0.3) 0%, transparent 70%);
+    top: 40%;
+    left: 30%;
+    animation-delay: -14s;
+  }
+
+  /* Hover lift effect */
+  .hover-lift {
+    @apply transition-all duration-300 ease-out;
+  }
+  .hover-lift:hover {
+    transform: translateY(-4px);
+  }
+
+  /* Progress bar */
+  .progress-fill {
+    @apply h-full rounded-full transition-all duration-1000 ease-out;
+    background: linear-gradient(90deg, #0D9488, #2dd4bf);
+  }
+
+  /* Noise texture overlay */
+  .noise-overlay::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1;
+  }
+}

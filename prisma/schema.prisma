@@ -1,0 +1,270 @@
+// ============================================================
+// PeduliAnak — Prisma Schema
+// Platform donasi dan pelaporan kasus anak terlantar
+// & kekerasan digital
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ──────────────────────────────────────────────────
+
+enum Role {
+  USER
+  ADMIN
+  MODERATOR
+}
+
+enum ReportCategory {
+  NEGLECT        // Penelantaran anak
+  VIOLENCE       // Kekerasan fisik/psikis
+  DIGITAL_ABUSE  // Kekerasan/eksploitasi digital
+}
+
+enum UrgencyLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ReportStatus {
+  PENDING       // Baru masuk, belum diproses
+  UNDER_REVIEW  // Sedang ditinjau moderator
+  VERIFIED      // Sudah diverifikasi
+  IN_PROGRESS   // Sedang ditangani
+  RESOLVED      // Selesai ditangani
+  REJECTED      // Ditolak (laporan tidak valid)
+}
+
+enum DonationType {
+  MONEY
+  GOODS
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  EXPIRED
+  REFUNDED
+}
+
+enum NotificationType {
+  REPORT_UPDATE
+  DONATION_RECEIVED
+  SYSTEM_ALERT
+  CAMPAIGN_UPDATE
+}
+
+// ─── MODELS ─────────────────────────────────────────────────
+
+/// Pengguna platform — pelapor, donatur, admin, moderator
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?   // hashed via bcryptjs
+  image         String?   // avatar URL
+  role          Role      @default(USER)
+  phone         String?
+
+  // Relasi
+  reports       Report[]
+  donations     Donation[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
+
+  // NextAuth required
+  accounts      Account[]
+  sessions      Session[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+/// Laporan kasus anak terlantar / kekerasan
+model Report {
+  id           String         @id @default(cuid())
+  title        String
+  description  String         @db.Text
+  category     ReportCategory
+  urgencyLevel UrgencyLevel   @default(MEDIUM) // AI-generated via Gemini
+  status       ReportStatus   @default(PENDING)
+
+  // Privasi pelapor
+  isAnonymous Boolean @default(false)
+
+  // Bukti pendukung — array URL gambar (Cloudinary)
+  evidence String[] // array of Cloudinary URLs
+
+  // Lokasi kejadian
+  location    String?
+  latitude    Float?
+  longitude   Float?
+
+  // AI Analysis
+  aiSummary   String? @db.Text // Ringkasan otomatis dari Gemini
+  aiSuggestion String? @db.Text // Rekomendasi tindakan dari AI
+
+  // Relasi
+  reporterId String?
+  reporter   User?   @relation(fields: [reporterId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([status])
+  @@index([urgencyLevel])
+  @@index([createdAt])
+  @@map("reports")
+}
+
+/// Program/kampanye donasi
+model Program {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @db.Text
+  coverImage  String?  // Cloudinary URL
+  targetAmount Float   @default(0)
+  currentAmount Float  @default(0)
+  isActive    Boolean  @default(true)
+  startDate   DateTime @default(now())
+  endDate     DateTime?
+
+  // Relasi
+  donations Donation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("programs")
+}
+
+/// Donasi dari pengguna
+model Donation {
+  id            String        @id @default(cuid())
+  amount        Float
+  type          DonationType  @default(MONEY)
+  paymentStatus PaymentStatus @default(PENDING)
+
+  // Identitas donatur
+  donorName  String?
+  donorEmail String?
+  isAnonymous Boolean @default(false)
+  message     String? // Pesan dari donatur
+
+  // Midtrans
+  midtransOrderId  String? @unique
+  midtransToken    String?
+  midtransRedirect String?
+
+  // Donasi barang
+  goodsDescription String? @db.Text
+
+  // Relasi
+  donorId   String?
+  donor     User?    @relation(fields: [donorId], references: [id], onDelete: SetNull)
+
+  programId String?
+  program   Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([paymentStatus])
+  @@index([createdAt])
+  @@map("donations")
+}
+
+/// Log audit untuk semua aksi penting
+model AuditLog {
+  id        String @id @default(cuid())
+  action    String // e.g. "REPORT_CREATED", "STATUS_CHANGED", "DONATION_VERIFIED"
+  entity    String // e.g. "Report", "Donation"
+  entityId  String
+  details   String? @db.Text // JSON detail perubahan
+  ipAddress String?
+
+  // Relasi
+  userId String?
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+/// Notifikasi untuk pengguna
+model Notification {
+  id      String           @id @default(cuid())
+  type    NotificationType
+  title   String
+  message String           @db.Text
+  isRead  Boolean          @default(false)
+  link    String?          // Deep link ke halaman terkait
+
+  // Relasi
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ─── NEXTAUTH MODELS ────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}

@@ -67,7 +67,7 @@ export async function sendDonationConfirmation(
           <h2 style="color: #0c2461; margin-top: 0;">Terima Kasih, ${donorName}! 🙏</h2>
           <p>Donasi Anda sebesar <strong>${formattedAmount}</strong> untuk program <strong>"${programTitle}"</strong> telah kami terima.</p>
           <p>Donasi Anda akan digunakan untuk membantu anak-anak yang membutuhkan.</p>
-          <a href="${process.env.NEXT_PUBLIC_APP_URL}/donasi" 
+          <a href="${process.env.NEXT_PUBLIC_APP_URL}/donate" 
              style="display: inline-block; padding: 12px 24px; background: #0abfaa; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
             Lihat Riwayat Donasi
           </a>

@@ -53,7 +53,7 @@ export async function createTransaction(params: CreateTransactionParams) {
       email: donorEmail,
     },
     callbacks: {
-      finish: `${process.env.NEXT_PUBLIC_APP_URL}/donasi/sukses?order_id=${orderId}`,
+      finish: `${process.env.NEXT_PUBLIC_APP_URL}/donate/success?order_id=${orderId}`,
     },
   };
 

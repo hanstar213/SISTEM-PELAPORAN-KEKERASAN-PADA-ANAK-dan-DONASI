@@ -38,6 +38,7 @@ export interface CreateReportInput {
   location?: string;
   latitude?: number;
   longitude?: number;
+  incidentDate?: string;
 }
 
 export interface ReportWithReporter {
@@ -50,8 +51,9 @@ export interface ReportWithReporter {
   isAnonymous: boolean;
   evidence: string[];
   location: string | null;
-  aiSummary: string | null;
-  aiSuggestion: string | null;
+  incidentDate: Date | null;
+  adminNotes?: string | null;
+  timeline?: unknown;
   reporter: {
     id: string;
     name: string | null;
@@ -72,6 +74,10 @@ export interface CreateDonationInput {
   message?: string;
   programId?: string;
   goodsDescription?: string;
+  goodsType?: string;
+  estimatedValue?: number;
+  pickupSchedule?: string;
+  pickupAddress?: string;
 }
 
 export interface DonationWithProgram {
@@ -82,6 +88,11 @@ export interface DonationWithProgram {
   donorName: string | null;
   isAnonymous: boolean;
   message: string | null;
+  goodsDescription: string | null;
+  goodsType: string | null;
+  estimatedValue: number | null;
+  pickupSchedule: Date | null;
+  pickupAddress: string | null;
   program: {
     id: string;
     title: string;
@@ -126,15 +137,6 @@ export interface DashboardStats {
   reportsByStatus: Record<ReportStatus, number>;
   recentReports: ReportWithReporter[];
   recentDonations: DonationWithProgram[];
-}
-
-// ─── AI Types ───────────────────────────────────────────────
-
-export interface AIAnalysisResult {
-  urgencyLevel: UrgencyLevel;
-  summary: string;
-  suggestion: string;
-  confidence: number;
 }
 
 // ─── API Response ───────────────────────────────────────────

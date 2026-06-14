@@ -2,6 +2,7 @@
 // PeduliAnak — Prisma Schema
 // Platform donasi dan pelaporan kasus anak terlantar
 // & kekerasan digital
+// Database: Supabase PostgreSQL
 // ============================================================
 
 generator client {
@@ -9,8 +10,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
 }
 
 // ─── ENUMS ──────────────────────────────────────────────────
@@ -25,6 +26,7 @@ enum ReportCategory {
   NEGLECT        // Penelantaran anak
   VIOLENCE       // Kekerasan fisik/psikis
   DIGITAL_ABUSE  // Kekerasan/eksploitasi digital
+  EXPLOITATION   // Eksploitasi anak
 }
 
 enum UrgencyLevel {
@@ -36,7 +38,7 @@ enum UrgencyLevel {
 
 enum ReportStatus {
   PENDING       // Baru masuk, belum diproses
-  UNDER_REVIEW  // Sedang ditinjau moderator
+  UNDER_REVIEW  // Sedang ditinjau admin
   VERIFIED      // Sudah diverifikasi
   IN_PROGRESS   // Sedang ditangani
   RESOLVED      // Selesai ditangani
@@ -98,8 +100,11 @@ model Report {
   title        String
   description  String         @db.Text
   category     ReportCategory
-  urgencyLevel UrgencyLevel   @default(MEDIUM) // AI-generated via Gemini
+  urgencyLevel UrgencyLevel   @default(MEDIUM) // Diisi manual oleh admin
   status       ReportStatus   @default(PENDING)
+
+  // Waktu kejadian
+  incidentDate DateTime?
 
   // Privasi pelapor
   isAnonymous Boolean @default(false)
@@ -112,9 +117,9 @@ model Report {
   latitude    Float?
   longitude   Float?
 
-  // AI Analysis
-  aiSummary   String? @db.Text // Ringkasan otomatis dari Gemini
-  aiSuggestion String? @db.Text // Rekomendasi tindakan dari AI
+  // Catatan admin (pengganti AI analysis)
+  adminNotes  String? @db.Text // Catatan dari admin saat review
+  timeline    Json?
 
   // Relasi
   reporterId String?
@@ -164,13 +169,16 @@ model Donation {
   isAnonymous Boolean @default(false)
   message     String? // Pesan dari donatur
 
-  // Midtrans
-  midtransOrderId  String? @unique
-  midtransToken    String?
-  midtransRedirect String?
+  // Bukti Pembayaran
+  paymentProof     String? // Cloudinary URL
 
   // Donasi barang
   goodsDescription String? @db.Text
+  goodsType        String?
+  estimatedValue   Float?
+  pickupSchedule   DateTime?
+  pickupAddress    String? @db.Text
+  goodsPhoto       String[] // array of Cloudinary URLs for goods photos
 
   // Relasi
   donorId   String?

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useSession, signOut } from "next-auth/react";
 import {
   motion,
   useInView,
@@ -16,26 +17,37 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { ClipboardList, Wallet, CheckCircle2, Heart } from "lucide-react";
+
+const NAV_LINKS = [
+  { label: "Beranda", href: "#beranda" },
+  { label: "Laporan", href: "/report" },
+  { label: "Donasi", href: "/donate" },
+  { label: "Transparansi", href: "/transparency" },
+  { label: "Program", href: "#program" },
+  { label: "Tentang", href: "#tentang" },
+];
 
 /* ================================================================
    DATA
    ================================================================ */
 
 const STATS = [
-  { label: "Kasus Dilaporkan", value: 2847, suffix: "+", icon: "📋" },
-  { label: "Dana Terkumpul", value: 4.2, suffix: " M", prefix: "Rp", icon: "💰" },
-  { label: "Kasus Tertangani", value: 1923, suffix: "+", icon: "✅" },
-  { label: "Donatur Aktif", value: 12450, suffix: "+", icon: "❤️" },
+  { label: "Kasus Dilaporkan", value: 2847, suffix: "+", prefix: "", icon: <ClipboardList className="w-6 h-6 text-teal-600" /> },
+  { label: "Dana Terkumpul", value: 4.2, suffix: " M", prefix: "Rp", icon: <Wallet className="w-6 h-6 text-teal-600" /> },
+  { label: "Kasus Tertangani", value: 1923, suffix: "+", prefix: "", icon: <CheckCircle2 className="w-6 h-6 text-teal-600" /> },
+  { label: "Donatur Aktif", value: 12450, suffix: "+", prefix: "", icon: <Heart className="w-6 h-6 text-teal-600" /> },
 ];
 
 const STEPS = [
   {
     step: 1,
-    title: "Laporkan",
-    desc: "Buat laporan kasus anak terlantar atau kekerasan. Bisa anonim.",
+    title: "Laporkan Kasus",
+    desc: "Laporkan dugaan kekerasan atau penelantaran anak secara aman, mudah, dan rahasia.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" className="w-8 h-8" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
@@ -44,21 +56,21 @@ const STEPS = [
   },
   {
     step: 2,
-    title: "Verifikasi AI",
-    desc: "AI menganalisis urgency level dan merekomendasikan tindakan.",
+    title: "Verifikasi Admin",
+    desc: "Laporan Anda akan segera ditinjau dan divalidasi oleh tim admin kami untuk penanganan lebih lanjut.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" className="w-8 h-8" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     ),
   },
   {
     step: 3,
-    title: "Ditangani",
-    desc: "Tim & lembaga terkait menindaklanjuti hingga kasus terselesaikan.",
+    title: "Tindakan & Pendampingan",
+    desc: "Kami berkoordinasi dengan lembaga terkait untuk memberikan perlindungan dan bantuan langsung kepada korban.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" className="w-8 h-8" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z" />
       </svg>
     ),
   },
@@ -209,12 +221,16 @@ const fadeUpItem = {
 
 function Navbar() {
   const [scrolled, setScrolled] = useState(false);
+  const { data: session, status } = useSession();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const isLoggedIn = status === "authenticated" && session?.user;
+  const userName = session?.user?.name || session?.user?.email || "User";
 
   return (
     <motion.nav
@@ -240,26 +256,49 @@ function Navbar() {
 
         {/* Nav links */}
         <div className="hidden md:flex items-center gap-8">
-          {["Beranda", "Laporan", "Donasi", "Program", "Tentang"].map((item) => (
-            <a
-              key={item}
-              href={`#${item.toLowerCase()}`}
+          {NAV_LINKS.map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
               className={`text-sm font-medium transition-colors hover:text-teal-500 ${
                 scrolled ? "text-navy-800/70" : "text-white/70"
               }`}
             >
-              {item}
-            </a>
+              {item.label}
+            </Link>
           ))}
         </div>
 
         {/* Actions */}
         <div className="flex items-center gap-3">
-          <Button variant={scrolled ? "outline" : "ghost-light"} size="sm" className="hidden sm:flex">
-            Masuk
-          </Button>
-          <Button variant="accent" size="sm">
-            Laporkan
+          {isLoggedIn ? (
+            <>
+              <span className={`hidden sm:inline text-sm font-medium ${
+                scrolled ? "text-navy-800/70" : "text-white/70"
+              }`}>
+                Halo, {userName.split(" ")[0]}
+              </span>
+              <Button
+                variant={scrolled ? "outline" : "ghost-light"}
+                size="sm"
+                className="hidden sm:flex"
+                onClick={() => signOut({ callbackUrl: "/" })}
+              >
+                Keluar
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button asChild variant={scrolled ? "outline" : "ghost-light"} size="sm" className="hidden sm:flex">
+                <Link href="/auth/login">Masuk</Link>
+              </Button>
+              <Button asChild variant={scrolled ? "outline" : "ghost-light"} size="sm" className="hidden sm:flex">
+                <Link href="/auth/register">Daftar</Link>
+              </Button>
+            </>
+          )}
+          <Button asChild variant="accent" size="sm">
+            <Link href="/report">Laporkan</Link>
           </Button>
         </div>
       </div>
@@ -271,7 +310,7 @@ function Navbar() {
    1. HERO SECTION
    ================================================================ */
 
-function HeroSection() {
+function HeroSection({ stats }: { stats: typeof STATS }) {
   return (
     <section id="beranda" className="relative min-h-screen flex items-center bg-gradient-hero-mesh noise-overlay overflow-hidden">
       {/* Animated Mesh Orbs */}
@@ -335,41 +374,22 @@ function HeroSection() {
             transition={{ delay: 0.65, duration: 0.6 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
-            <Button variant="coral" size="xl" className="w-full sm:w-auto group">
+            <Button asChild variant="coral" size="xl" className="w-full sm:w-auto group">
+            <Link href="/report" className="inline-flex items-center justify-center gap-2">
               <svg className="w-5 h-5 transition-transform group-hover:-translate-y-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
               </svg>
               Laporkan Kasus
-            </Button>
-            <Button variant="outline-teal" size="xl" className="w-full sm:w-auto border-teal-400/30 text-teal-300 hover:bg-teal-500 hover:text-white hover:border-teal-500">
+            </Link>
+          </Button>
+          <Button asChild variant="outline-teal" size="xl" className="w-full sm:w-auto border-teal-400/30 text-teal-300 hover:bg-teal-500 hover:text-white hover:border-teal-500">
+            <Link href="/donate" className="inline-flex items-center justify-center gap-2">
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
               </svg>
               Donasi Sekarang
-            </Button>
-          </motion.div>
-
-          {/* Mini stats */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1, duration: 0.8 }}
-            className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 max-w-3xl mx-auto"
-          >
-            {STATS.map((stat, i) => (
-              <div key={i} className="text-center">
-                <div className="text-2xl md:text-3xl font-heading font-bold text-white">
-                  <AnimatedCounter
-                    target={stat.value}
-                    prefix={stat.prefix}
-                    suffix={stat.suffix}
-                    decimals={stat.value < 100 ? 1 : 0}
-                    duration={2.5}
-                  />
-                </div>
-                <div className="text-xs md:text-sm text-white/40 mt-1">{stat.label}</div>
-              </div>
-            ))}
+            </Link>
+          </Button>
           </motion.div>
         </div>
       </div>
@@ -384,7 +404,7 @@ function HeroSection() {
    2. STATS BAR
    ================================================================ */
 
-function StatsBar() {
+function StatsBar({ stats }: { stats: typeof STATS }) {
   return (
     <section className="relative -mt-8 z-20">
       <motion.div
@@ -395,19 +415,18 @@ function StatsBar() {
         className="section-container"
       >
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {STATS.map((stat, i) => (
+          {stats.map((stat, i) => (
             <motion.div
               key={i}
               variants={fadeUpItem}
-              className="bg-white rounded-2xl p-6 shadow-soft border border-warm-200/50 hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 group"
+              className="bg-white rounded-2xl p-6 shadow-soft border border-warm-200/50 hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 group flex flex-col items-center text-center"
             >
-              <div className="text-2xl mb-3 group-hover:scale-110 transition-transform">{stat.icon}</div>
               <div className="text-2xl md:text-3xl font-heading font-bold text-navy-800">
                 <AnimatedCounter
                   target={stat.value}
                   prefix={stat.prefix}
                   suffix={stat.suffix}
-                  decimals={stat.value < 100 ? 1 : 0}
+                  decimals={0}
                 />
               </div>
               <div className="text-sm text-navy-800/50 mt-1">{stat.label}</div>
@@ -499,6 +518,26 @@ function formatRupiah(n: number) {
 }
 
 function ProgramCards() {
+  const [activePrograms, setActivePrograms] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchPrograms() {
+      try {
+        const res = await fetch("/api/programs");
+        const json = await res.json();
+        if (json.success) {
+          setActivePrograms(json.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch programs:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchPrograms();
+  }, []);
+
   return (
     <section id="program" className="section-padding bg-gradient-section">
       <div className="section-container">
@@ -525,8 +564,16 @@ function ProgramCards() {
           viewport={{ once: true, margin: "-50px" }}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         >
-          {PROGRAMS.map((program) => {
-            const percent = Math.round((program.current / program.target) * 100);
+          {isLoading ? (
+            <div className="col-span-full py-12 text-center text-navy-800/50">Memuat program...</div>
+          ) : activePrograms.length === 0 ? (
+            <div className="col-span-full py-12 text-center text-navy-800/50">Belum ada program aktif saat ini.</div>
+          ) : activePrograms.map((program) => {
+            const current = program.currentAmount || 0;
+            const target = program.targetAmount || 1;
+            let percent = Math.round((current / target) * 100);
+            if (current > 0 && percent === 0) percent = 1;
+            percent = Math.min(percent, 100);
 
             return (
               <motion.div
@@ -536,9 +583,13 @@ function ProgramCards() {
               >
                 {/* Image area */}
                 <div className="h-48 bg-gradient-to-br from-navy-800 to-teal-800 flex items-center justify-center relative overflow-hidden">
-                  <div className="text-6xl group-hover:scale-110 transition-transform duration-500">
-                    {program.image}
-                  </div>
+                  {program.coverImage ? (
+                    <img src={program.coverImage} alt={program.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  ) : (
+                    <div className="text-6xl group-hover:scale-110 transition-transform duration-500">
+                      🏠
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                   <Badge variant="teal" className="absolute top-4 right-4 bg-teal-500/20 border-teal-500/30 text-teal-200">
                     Aktif
@@ -557,8 +608,8 @@ function ProgramCards() {
                   {/* Progress */}
                   <div className="mb-4">
                     <div className="flex justify-between text-sm mb-2">
-                      <span className="font-semibold text-navy-800">{formatRupiah(program.current)}</span>
-                      <span className="text-navy-800/40">dari {formatRupiah(program.target)}</span>
+                      <span className="font-semibold text-navy-800">{formatRupiah(current)}</span>
+                      <span className="text-navy-800/40">dari {formatRupiah(target)}</span>
                     </div>
                     <div className="h-2.5 bg-warm-100 rounded-full overflow-hidden">
                       <motion.div
@@ -576,8 +627,8 @@ function ProgramCards() {
                   </div>
 
                   {/* CTA */}
-                  <Button variant="accent" className="w-full" size="md">
-                    Donasi Program Ini
+                  <Button variant="accent" className="w-full" size="md" asChild>
+                    <Link href={`/donate?program=${program.id}`}>Donasi Program Ini</Link>
                   </Button>
                 </div>
               </motion.div>
@@ -914,12 +965,30 @@ function Footer() {
    ================================================================ */
 
 export default function HomePage() {
+  const [stats, setStats] = useState(STATS);
+
+  useEffect(() => {
+    fetch('/api/stats')
+      .then(res => res.json())
+      .then(result => {
+        if (result.success) {
+          setStats([
+            { label: "Kasus Dilaporkan", value: result.data.reportedCases, suffix: "", prefix: "", icon: <ClipboardList className="w-6 h-6 text-teal-600" /> },
+            { label: "Dana Terkumpul", value: result.data.collectedFunds, suffix: "", prefix: "Rp", icon: <Wallet className="w-6 h-6 text-teal-600" /> },
+            { label: "Kasus Tertangani", value: result.data.resolvedCases, suffix: "", prefix: "", icon: <CheckCircle2 className="w-6 h-6 text-teal-600" /> },
+            { label: "Donatur Aktif", value: result.data.activeDonors, suffix: "", prefix: "", icon: <Heart className="w-6 h-6 text-teal-600" /> },
+          ]);
+        }
+      })
+      .catch(err => console.error("Failed to fetch stats", err));
+  }, []);
+
   return (
     <>
       <Navbar />
       <main>
-        <HeroSection />
-        <StatsBar />
+        <HeroSection stats={stats} />
+        <StatsBar stats={stats} />
         <HowItWorks />
         <ProgramCards />
         <TransparansiSection />

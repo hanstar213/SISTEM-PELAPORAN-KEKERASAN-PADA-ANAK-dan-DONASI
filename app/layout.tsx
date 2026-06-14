@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { Bricolage_Grotesque } from "next/font/google";
+// import { PushNotificationSetup } from "@/components/PushNotificationSetup";
+import AuthProvider from "@/components/auth-provider";
+import { ChatWidget } from "@/components/chatbot/chat-widget";
 import "./globals.css";
 
 const inter = Inter({
@@ -88,7 +91,11 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${bricolage.variable} font-sans antialiased`}
       >
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+        <ChatWidget />
+        {/* <PushNotificationSetup /> */}
       </body>
     </html>
   );

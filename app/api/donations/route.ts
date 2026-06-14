@@ -4,19 +4,28 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { createTransaction } from "@/lib/midtrans";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { rateLimit } from "@/lib/rate-limit";
+import { sanitizeRecord } from "@/lib/sanitizer";
 
 // GET /api/donations — List donations
 export async function GET(req: NextRequest) {
   try {
+    rateLimit(req);
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
     const programId = searchParams.get("programId");
 
-    const where: any = { paymentStatus: "SUCCESS" };
+    const session = await getServerSession(authOptions);
+    const userRole = session?.user ? (session.user as any).role : null;
+
+    const where: any = {};
+    if (userRole !== "ADMIN") {
+      where.paymentStatus = "SUCCESS";
+    }
+
     if (programId) where.programId = programId;
 
     const [donations, total] = await Promise.all([
@@ -54,61 +63,40 @@ export async function GET(req: NextRequest) {
 // POST /api/donations — Create donation + Midtrans transaction
 export async function POST(req: NextRequest) {
   try {
+    rateLimit(req);
     const session = await getServerSession(authOptions);
-    const body = await req.json();
+    const body = sanitizeRecord(await req.json());
 
-    const { amount, type, donorName, donorEmail, isAnonymous, message, programId, goodsDescription } = body;
+    const { amount, type, donorName, donorEmail, isAnonymous, message, programId, paymentProof, goodsDescription, goodsType, estimatedValue, pickupSchedule, pickupAddress, goodsPhoto } = body;
 
-    // Generate unique order ID
-    const orderId = `PEDULI-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+    const finalAmount = type === "GOODS" ? (estimatedValue || 0) : (amount || 0);
 
     // Create donation record
-    const donation = await prisma.donation.create({
-      data: {
-        amount,
-        type: type || "MONEY",
-        donorName: isAnonymous ? "Anonim" : donorName,
-        donorEmail,
-        isAnonymous: isAnonymous || false,
-        message,
-        programId,
-        goodsDescription,
-        midtransOrderId: orderId,
-        donorId: session?.user ? (session.user as any).id : null,
-      },
-    });
+    const donationData: any = {
+      amount: finalAmount,
+      type: type || "MONEY",
+      donorName: isAnonymous ? "Anonim" : donorName,
+      donorEmail,
+      isAnonymous: isAnonymous || false,
+      message,
+      programId: programId || null,
+      paymentProof,
+      goodsDescription,
+      goodsType,
+      estimatedValue,
+      pickupSchedule: pickupSchedule ? new Date(pickupSchedule) : null,
+      pickupAddress,
+      donorId: session?.user ? (session.user as any).id : null,
+    };
 
-    let paymentData = null;
-
-    // Buat transaksi Midtrans untuk donasi uang
-    if (type === "MONEY" || !type) {
-      // Ambil nama program jika ada
-      let itemName = "Donasi PeduliAnak";
-      if (programId) {
-        const program = await prisma.program.findUnique({
-          where: { id: programId },
-          select: { title: true },
-        });
-        if (program) itemName = `Donasi: ${program.title}`;
-      }
-
-      paymentData = await createTransaction({
-        orderId,
-        amount,
-        donorName: isAnonymous ? "Anonim" : (donorName || "Donatur"),
-        donorEmail: donorEmail || "donor@pedulianak.id",
-        itemName,
-      });
-
-      // Update donation with Midtrans token
-      await prisma.donation.update({
-        where: { id: donation.id },
-        data: {
-          midtransToken: paymentData.token,
-          midtransRedirect: paymentData.redirectUrl,
-        },
-      });
+    // Add goodsPhoto if provided (field may not exist in older DB)
+    if (goodsPhoto && goodsPhoto.length > 0) {
+      donationData.goodsPhoto = goodsPhoto;
     }
+
+    const donation = await prisma.donation.create({
+      data: donationData,
+    });
 
     // Audit log
     await prisma.auditLog.create({
@@ -124,8 +112,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        data: { donation, payment: paymentData },
-        message: "Donasi berhasil dibuat",
+        data: { donation },
+        message: "Donasi berhasil dicatat dan menunggu verifikasi admin.",
       },
       { status: 201 }
     );
